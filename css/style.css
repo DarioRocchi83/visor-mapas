@@ -1,9 +1,15 @@
-body {
-    padding: 0;
+/* css/style.css */
+
+/* Hacemos que el cuerpo y el html ocupen el 100% del alto sin márgenes */
+html, body {
+    height: 100%;
     margin: 0;
+    padding: 0;
+    font-family: sans-serif;
 }
 
-html, body, #map {
+/* Hacemos que el contenedor del mapa ocupe todo el espacio disponible */
+#map {
     height: 100%;
-    width: 100vw;
+    width: 100%;
 }
