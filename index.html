@@ -14,12 +14,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <!-- DEPENDENCIA NECESARIA PARA LEAFLET-KML -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
-    <!-- LIBRERÍA KML -->
     <script src="https://unpkg.com/leaflet-kml/dist/leaflet-kml.js"></script>
-
     <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
@@ -27,24 +23,22 @@
 
     <script>
         window.onload = function () {
-            console.log("Página y TODAS las librerías cargadas. Construyendo el mapa...");
-
             const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHJ1KkaF4pZ-TzAUIUx_pQa97eKT6fp-T_5fIxevgrHUca-arFLQzYnxPY9jXM5Ow567TjX3NGYlyj/pub?gid=0&single=true&output=csv';
-            const rutaKMZ = 'data/archivo1.kmz';
+            // CAMBIO CLAVE: Apuntamos al nuevo archivo .kml
+            const rutaKML = 'data/ruta.kml';
 
             const map = L.map('map').setView([-34.5, -64], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
             const capasParaAjuste = L.featureGroup().addTo(map);
 
-            // --- CARGAR KMZ ---
-            fetch(rutaKMZ)
+            // --- CARGAR KML ---
+            fetch(rutaKML)
                 .then(res => res.text())
                 .then(kmltext => {
                     const parser = new DOMParser();
                     const kml = parser.parseFromString(kmltext, 'text/xml');
-                    
-                    const track = new L.KML(kml); // Esta línea ahora funcionará
+                    const track = new L.KML(kml);
                     map.addLayer(track);
                     
                     const bounds = track.getBounds();
@@ -52,21 +46,14 @@
                         capasParaAjuste.addLayer(track);
                         map.fitBounds(capasParaAjuste.getBounds());
                     }
-                    console.log("ÉXITO: Capa KML/KMZ cargada con leaflet-kml.");
+                    console.log("ÉXITO: Capa KML cargada.");
                 })
-                .catch(err => {
-                    console.error("ERROR AL CARGAR KML/KMZ:", err);
-                    alert("ALERTA: No se pudo cargar la capa KMZ con el nuevo método.");
-                });
+                .catch(err => console.error("ERROR AL CARGAR KML:", err));
 
             // --- CARGAR GOOGLE SHEET ---
             Papa.parse(googleSheetURL, {
                 download: true, header: true,
                 complete: function (results) {
-                    if (!results.data || results.data.length === 0) {
-                        console.warn("AVISO: El Google Sheet está vacío o tiene un formato incorrecto.");
-                        return;
-                    }
                     results.data.forEach(function (fila) {
                         if (fila.Latitud && fila.Longitud) {
                             const lat = parseFloat(fila.Latitud.replace(',', '.'));
@@ -78,8 +65,7 @@
                     });
                     if (capasParaAjuste.getLayers().length > 0) map.fitBounds(capasParaAjuste.getBounds());
                     console.log("ÉXITO: Puntos de Google Sheet cargados.");
-                },
-                error: err => console.error("ERROR GOOGLE SHEET: No se pudo descargar o analizar la URL.", err)
+                }
             });
 
             // --- HERRAMIENTAS ---
@@ -88,11 +74,7 @@
             L.Routing.control({
                 language: 'es',
                 geocoder: L.Control.Geocoder.nominatim({ geocodingQueryParams: { "accept-language": "es" } }),
-                addWaypoints: true,
-                routeWhileDragging: true,
-                createMarker: function() { return null; }
             }).addTo(map);
-            console.log("Todas las herramientas añadidas.");
         };
     </script>
 </body>
