@@ -1,0 +1,9 @@
+visor-mapas/
+├── index.html          # La página principal para los usuarios
+├── admin.html          # Una página simple para que tú pruebes los KMZ
+├── css/
+│   └── style.css       # Nuestros estilos personalizados
+├── js/
+│   └── main.js         # Nuestro código JavaScript principal
+└── data/
+    └── archivo1.kmz    # Aquí guardarás tus archivos KMZ

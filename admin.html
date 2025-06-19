@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Previsualizar KMZ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: sans-serif; }
+        #map { height: 500px; width: 100%; border: 1px solid #ccc; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Previsualizador de KMZ (Solo Admin)</h1>
+        <p>Selecciona un archivo KMZ de tu computadora para verlo en el mapa. Esto no lo sube a ningún lado, es solo una vista previa local.</p>
+        <input type="file" id="kmz-file" accept=".kmz">
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+    <script>
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let currentLayer = null;
+
+        document.getElementById('kmz-file').addEventListener('change', function(e) {
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentLayer = omnivore.kmz.parse(event.target.result).addTo(map);
+                    map.fitBounds(currentLayer.getBounds());
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+    </script>
+</body>
+</html>
