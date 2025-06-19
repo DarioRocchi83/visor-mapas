@@ -14,51 +14,51 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    
+    <!-- DEPENDENCIA NECESARIA PARA LEAFLET-KML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+    <!-- LIBRERÍA KML -->
     <script src="https://unpkg.com/leaflet-kml/dist/leaflet-kml.js"></script>
+
     <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        // CAMBIO CLAVE: Usamos window.onload en lugar de DOMContentLoaded.
-        // Esto espera a que TODAS las librerías de arriba estén 100% cargadas.
         window.onload = function () {
             console.log("Página y TODAS las librerías cargadas. Construyendo el mapa...");
 
-            // --- CONFIGURACIÓN ---
             const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHJ1KkaF4pZ-TzAUIUx_pQa97eKT6fp-T_5fIxevgrHUca-arFLQzYnxPY9jXM5Ow567TjX3NGYlyj/pub?gid=0&single=true&output=csv';
             const rutaKMZ = 'data/archivo1.kmz';
 
-            // --- MAPA BASE ---
             const map = L.map('map').setView([-34.5, -64], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
             const capasParaAjuste = L.featureGroup().addTo(map);
 
             // --- CARGAR KMZ ---
-fetch(rutaKMZ)
-    .then(res => res.text())
-    .then(kmltext => {
-        const parser = new DOMParser();
-        const kml = parser.parseFromString(kmltext, 'text/xml');
-        
-        const track = new L.KML(kml);
-        map.addLayer(track);
-        
-        // Ajustar el mapa para que se vea la ruta
-        const bounds = track.getBounds();
-        if (bounds.isValid()) {
-            capasParaAjuste.addLayer(track); // La añadimos al grupo para el zoom
-            map.fitBounds(capasParaAjuste.getBounds());
-        }
-        console.log("ÉXITO: Capa KML/KMZ cargada con leaflet-kml.");
-    })
-    .catch(err => {
-        console.error("ERROR AL CARGAR KML/KMZ:", err);
-        alert("ALERTA: No se pudo cargar la capa KMZ con el nuevo método.");
-    });
-	
+            fetch(rutaKMZ)
+                .then(res => res.text())
+                .then(kmltext => {
+                    const parser = new DOMParser();
+                    const kml = parser.parseFromString(kmltext, 'text/xml');
+                    
+                    const track = new L.KML(kml); // Esta línea ahora funcionará
+                    map.addLayer(track);
+                    
+                    const bounds = track.getBounds();
+                    if (bounds.isValid()) {
+                        capasParaAjuste.addLayer(track);
+                        map.fitBounds(capasParaAjuste.getBounds());
+                    }
+                    console.log("ÉXITO: Capa KML/KMZ cargada con leaflet-kml.");
+                })
+                .catch(err => {
+                    console.error("ERROR AL CARGAR KML/KMZ:", err);
+                    alert("ALERTA: No se pudo cargar la capa KMZ con el nuevo método.");
+                });
+
             // --- CARGAR GOOGLE SHEET ---
             Papa.parse(googleSheetURL, {
                 download: true, header: true,
@@ -86,18 +86,12 @@ fetch(rutaKMZ)
             new L.Control.Measure({ position: 'topright', localization: 'es' }).addTo(map);
             new L.Control.Draw({ edit: { featureGroup: new L.FeatureGroup().addTo(map) } }).addTo(map);
             L.Routing.control({
-    language: 'es',
-    // Permite buscar direcciones y también pegar "lat,lon"
-    geocoder: L.Control.Geocoder.nominatim({
-        geocodingQueryParams: { "accept-language": "es" } // Prioriza resultados en español
-    }),
-    // Añade el botón para invertir la ruta
-    addWaypoints: true,
-    // Permite arrastrar los puntos en el mapa
-    routeWhileDragging: true,
-    // Texto del botón para crear la ruta
-    createMarker: function() { return null; } // Oculta los marcadores por defecto para una interfaz más limpia
-}).addTo(map);
+                language: 'es',
+                geocoder: L.Control.Geocoder.nominatim({ geocodingQueryParams: { "accept-language": "es" } }),
+                addWaypoints: true,
+                routeWhileDragging: true,
+                createMarker: function() { return null; }
+            }).addTo(map);
             console.log("Todas las herramientas añadidas.");
         };
     </script>
