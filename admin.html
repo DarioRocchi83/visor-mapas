@@ -2,42 +2,74 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Previsualizar KMZ</title>
+    <title>Admin - Previsualizar KMZ/KML</title>
+    <!-- Librerías de Leaflet y Omnivore -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: sans-serif; }
-        #map { height: 500px; width: 100%; border: 1px solid #ccc; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        body { font-family: sans-serif; margin: 20px; }
+        #map { height: 600px; width: 100%; border: 1px solid #ccc; }
+        .container { max-width: 900px; margin: 20px auto; }
+        h1, p { text-align: center; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Previsualizador de KMZ (Solo Admin)</h1>
-        <p>Selecciona un archivo KMZ de tu computadora para verlo en el mapa. Esto no lo sube a ningún lado, es solo una vista previa local.</p>
-        <input type="file" id="kmz-file" accept=".kmz">
+        <h1>Previsualizador de KMZ / KML (Admin)</h1>
+        <p>Selecciona un archivo KMZ o KML de tu computadora para verlo en el mapa. <br>Esto es solo una vista previa local.</p>
+        <input type="file" id="file-input" accept=".kmz,.kml" style="display: block; margin: 20px auto;">
         <div id="map"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- NOTA: Usamos una URL diferente para Omnivore para máxima compatibilidad -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
     <script>
+        // 1. Inicializar el mapa
         const map = L.map('map').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
         let currentLayer = null;
 
-        document.getElementById('kmz-file').addEventListener('change', function(e) {
+        // 2. Escuchar cambios en el input del archivo
+        document.getElementById('file-input').addEventListener('change', function(e) {
             if (currentLayer) {
-                map.removeLayer(currentLayer);
+                map.removeLayer(currentLayer); // Limpiar capa anterior
             }
+            
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    currentLayer = omnivore.kmz.parse(event.target.result).addTo(map);
-                    map.fitBounds(currentLayer.getBounds());
-                };
-                reader.readAsArrayBuffer(file);
+            if (!file) {
+                return; // No hacer nada si no se selecciona archivo
             }
+
+            const reader = new FileReader();
+
+            // 3. Cuando el archivo se lea, usar Omnivore para procesarlo
+            reader.onload = function(event) {
+                try {
+                    // Usamos .kml() para archivos locales, funciona para KMZ y KML.
+                    // Omnivore es lo suficientemente listo para manejarlo.
+                    currentLayer = omnivore.kml.parse(event.target.result).addTo(map);
+                    
+                    // Ajustar el mapa a la capa cargada
+                    map.fitBounds(currentLayer.getBounds());
+
+                    // Añadir popups con el nombre a cada elemento
+                     currentLayer.eachLayer(function(layer) {
+                        if (layer.feature && layer.feature.properties && layer.feature.properties.name) {
+                            layer.bindPopup('<b>' + layer.feature.properties.name + '</b>');
+                        }
+                    });
+
+                } catch (error) {
+                    console.error("Error al procesar el archivo con Omnivore:", error);
+                    alert("Hubo un error al leer el archivo. ¿Estás seguro de que es un KMZ/KML válido?");
+                }
+            };
+            
+            // 4. Leer el archivo como texto (KML es XML, que es texto)
+            reader.readAsText(file);
         });
     </script>
 </body>
