@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Visor de Mapas Definitivo</title>
-    <!-- 1. Stili CSS (non danno problemi) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
@@ -13,24 +12,21 @@
 <body>
     <div id="map"></div>
 
-    <!-- 2. Librerie JavaScript, caricate nell'ordine corretto e più affidabile -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    
-    <!-- URL ALTERNATIVA PER OMNIVORE - MOLTO IMPORTANTE -->
     <script src="https://unpkg.com/leaflet-omnivore@0.3.4/leaflet-omnivore.min.js"></script>
-
     <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
-    <!-- 3. Il nostro codice JavaScript, direttamente qui dentro -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log("Pagina e librerie caricate. Costruendo il mapa...");
+        // CAMBIO CLAVE: Usamos window.onload en lugar de DOMContentLoaded.
+        // Esto espera a que TODAS las librerías de arriba estén 100% cargadas.
+        window.onload = function () {
+            console.log("Página y TODAS las librerías cargadas. Construyendo el mapa...");
 
-            // --- CONFIGURAZIONE ---
+            // --- CONFIGURACIÓN ---
             const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHJ1KkaF4pZ-TzAUIUx_pQa97eKT6fp-T_5fIxevgrHUca-arFLQzYnxPY9jXM5Ow567TjX3NGYlyj/pub?gid=0&single=true&output=csv';
             const rutaKMZ = 'data/archivo1.kmz';
 
@@ -40,27 +36,30 @@
             
             const capasParaAjuste = L.featureGroup().addTo(map);
 
-            // --- CARICARE KMZ ---
+            // --- CARGAR KMZ ---
             try {
                 omnivore.kmz(rutaKMZ)
                     .on('ready', function() {
                         capasParaAjuste.addLayer(this);
                         if (capasParaAjuste.getLayers().length > 0) map.fitBounds(capasParaAjuste.getBounds());
-                        console.log("ÉXITO: Capa KMZ caricata.");
+                        console.log("ÉXITO: Capa KMZ cargada.");
                     })
-                    .on('error', e => console.error("ERRORE KMZ: File non trovato o corrotto.", e))
+                    .on('error', function(e) {
+                         console.error("ERROR KMZ: No se pudo cargar el archivo. Revisa que 'data/archivo1.kmz' exista en GitHub.", e);
+                         alert("ALERTA: No se pudo cargar la capa KMZ.");
+                    })
                     .addTo(map);
             } catch (error) {
-                console.error("FALLIMENTO CRITICO OMNIVORE:", error);
-                alert("FALLIMENTO CRITICO: La libreria 'omnivore' non è riuscita a inizializzarsi.");
+                console.error("FALLO CRÍTICO OMNIVORE:", error);
+                alert("FALLO CRÍTICO: La librería 'omnivore' no pudo inicializarse.");
             }
 
-            // --- CARICARE GOOGLE SHEET ---
+            // --- CARGAR GOOGLE SHEET ---
             Papa.parse(googleSheetURL, {
                 download: true, header: true,
                 complete: function (results) {
                     if (!results.data || results.data.length === 0) {
-                        console.warn("AVVISO: Google Sheet vuoto o formato errato.");
+                        console.warn("AVISO: El Google Sheet está vacío o tiene un formato incorrecto.");
                         return;
                     }
                     results.data.forEach(function (fila) {
@@ -73,17 +72,17 @@
                         }
                     });
                     if (capasParaAjuste.getLayers().length > 0) map.fitBounds(capasParaAjuste.getBounds());
-                    console.log("ÉXITO: Punti da Google Sheet caricati.");
+                    console.log("ÉXITO: Puntos de Google Sheet cargados.");
                 },
-                error: err => console.error("ERRORE GOOGLE SHEET: Impossibile scaricare o analizzare l'URL.", err)
+                error: err => console.error("ERROR GOOGLE SHEET: No se pudo descargar o analizar la URL.", err)
             });
 
-            // --- STRUMENTI ---
+            // --- HERRAMIENTAS ---
             new L.Control.Measure({ position: 'topright', localization: 'es' }).addTo(map);
             new L.Control.Draw({ edit: { featureGroup: new L.FeatureGroup().addTo(map) } }).addTo(map);
             L.Routing.control({ language: 'es', geocoder: L.Control.Geocoder.nominatim() }).addTo(map);
-            console.log("Tutti gli strumenti aggiunti.");
-        });
+            console.log("Todas las herramientas añadidas.");
+        };
     </script>
 </body>
 </html>
