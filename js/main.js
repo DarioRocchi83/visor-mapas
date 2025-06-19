@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log("ÉXITO: KMZ cargado y listo.");
                     this.eachLayer(layer => todasLasCapas.addLayer(layer));
                     if (todasLasCapas.getLayers().length > 0) {
-                        map.fitBounds(todasLasCapas.getBounds()).pad(0.1);
+                        map.fitBounds(todasLasCapas.getBounds());
                     }
                 })
                 .on('error', (e) => console.error("FALLO CARGANDO KMZ:", e));
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     });
                     if (todasLasCapas.getLayers().length > 0) {
-                        map.fitBounds(todasLasCapas.getBounds()).pad(0.1);
+                        map.fitBounds(todasLasCapas.getBounds());
                         console.log("Mapa ajustado a todas las capas.");
                     }
                 },
