@@ -1,6 +1,3 @@
-/* css/style.css */
-
-/* Hacemos que el cuerpo y el html ocupen el 100% del alto sin márgenes */
 html, body {
     height: 100%;
     margin: 0;
@@ -8,8 +5,15 @@ html, body {
     font-family: sans-serif;
 }
 
-/* Hacemos que el contenedor del mapa ocupe todo el espacio disponible */
 #map {
     height: 100%;
     width: 100%;
+}
+
+/* Mejora visual para el control de rutas */
+.leaflet-routing-container {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.65);
 }
