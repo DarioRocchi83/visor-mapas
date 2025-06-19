@@ -3,35 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Visor de Mapas (Protegido)</title>
+    <!-- Estilos CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="css/style.css">
     
-    <!-- Estilos para la pantalla de contraseña -->
     <style>
-        #login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7); z-index: 10000;
-            display: flex; align-items: center; justify-content: center;
-        }
-        #login-box {
-            background-color: white; padding: 40px; border-radius: 8px;
-            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        #login-box input {
-            padding: 10px; font-size: 16px; margin-bottom: 15px; width: 250px;
-        }
-        #login-box button {
-            padding: 10px 20px; font-size: 16px; cursor: pointer;
-            background-color: #007bff; color: white; border: none; border-radius: 5px;
-        }
-        #login-error {
-            color: red; margin-top: 10px; display: none;
-        }
-        /* Ocultar el mapa inicialmente */
-        #map { visibility: hidden; }
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        #login-box { background: white; padding: 40px; border-radius: 8px; text-align: center; }
+        #login-box input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 250px; }
+        #login-box button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #login-error { color: red; margin-top: 10px; display: none; }
+        #map-wrapper { display: none; width: 100%; height: 100%; } /* Contenedor del mapa, oculto por defecto */
+        #map { width: 100%; height: 100%; }
+        html, body { height: 100%; margin: 0; padding: 0; }
     </style>
 </head>
 <body>
@@ -43,18 +30,19 @@
             <input type="password" id="password-input" placeholder="Clave">
             <br>
             <button id="login-button">Entrar</button>
-            <p id="login-error">Clave incorrecta. Intente de nuevo.</p>
+            <p id="login-error">Clave incorrecta.</p>
         </div>
     </div>
     
     <!-- Contenedor del Mapa -->
-    <div id="map"></div>
+    <div id="map-wrapper">
+        <div id="map"></div>
+    </div>
 
     <!-- Librerías JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
-    <script src="https://unpkg.com/leaflet-kml/dist/leaflet-kml.js"></script>
+    <script src="https://unpkg.com/leaflet-gpx/gpx.js"></script> <!-- NUEVA LIBRERÍA para KML/GPX -->
     <script src="https://unpkg.com/leaflet-measure/dist/leaflet-measure.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
@@ -64,37 +52,34 @@
         // --- SECCIÓN DE AUTENTICACIÓN ---
         
         // ¡¡¡CAMBIA ESTA CONTRASEÑA POR LA QUE TÚ QUIERAS!!!
-        const CLAVE_SECRETA = "Visor2023"; 
+        const CLAVE_SECRETA = "Visor2023";
 
-        const loginOverlay = document.getElementById('login-overlay');
-        const mapContainer = document.getElementById('map');
-        const passwordInput = document.getElementById('password-input');
-        const loginButton = document.getElementById('login-button');
-        const loginError = document.getElementById('login-error');
+        // Función que se ejecuta cuando toda la página está lista
+        window.onload = function() {
+            const loginOverlay = document.getElementById('login-overlay');
+            const mapWrapper = document.getElementById('map-wrapper');
+            const passwordInput = document.getElementById('password-input');
+            const loginButton = document.getElementById('login-button');
+            const loginError = document.getElementById('login-error');
 
-        loginButton.addEventListener('click', verificarClave);
-        passwordInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                verificarClave();
+            loginButton.addEventListener('click', verificarClave);
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') verificarClave();
+            });
+
+            function verificarClave() {
+                if (passwordInput.value === CLAVE_SECRETA) {
+                    loginOverlay.style.display = 'none';
+                    mapWrapper.style.display = 'block';
+                    construirMapa(); // El mapa se construye solo con la clave correcta
+                } else {
+                    loginError.style.display = 'block';
+                    passwordInput.value = '';
+                }
             }
-        });
-
-        function verificarClave() {
-            if (passwordInput.value === CLAVE_SECRETA) {
-                // Clave correcta: ocultar login y mostrar mapa
-                loginOverlay.style.display = 'none';
-                mapContainer.style.visibility = 'visible';
-                // Solo ahora que tenemos acceso, construimos el mapa
-                construirMapa(); 
-            } else {
-                // Clave incorrecta: mostrar error
-                loginError.style.display = 'block';
-                passwordInput.value = '';
-            }
-        }
+        };
 
         // --- FUNCIÓN PRINCIPAL DEL MAPA ---
-        // Esta función ahora solo se llama si la clave es correcta
         function construirMapa() {
             const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHJ1KkaF4pZ-TzAUIUx_pQa97eKT6fp-T_5fIxevgrHUca-arFLQzYnxPY9jXM5Ow567TjX3NGYlyj/pub?gid=0&single=true&output=csv';
             const rutaKML = 'data/ruta.kml';
@@ -103,20 +88,22 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             const capasParaAjuste = L.featureGroup().addTo(map);
 
-            // Cargar KML
-            fetch(rutaKML).then(res => res.text()).then(kmltext => {
-                const parser = new DOMParser();
-                const kml = parser.parseFromString(kmltext, 'text/xml');
-                const track = new L.KML(kml);
-                map.addLayer(track);
-                const bounds = track.getBounds();
-                if (bounds.isValid()) {
-                    capasParaAjuste.addLayer(track);
-                    map.fitBounds(capasParaAjuste.getBounds());
+            // --- CARGAR KML CON EL MÉTODO MÁS ROBUSTO ---
+            new L.GPX(rutaKML, {
+                async: true,
+                gpx_options: {
+                    parseElements: ['track', 'route', 'waypoint']
                 }
-            });
+            }).on('loaded', function(e) {
+                capasParaAjuste.addLayer(e.target);
+                map.fitBounds(e.target.getBounds());
+                console.log("ÉXITO: Capa KML cargada con leaflet-gpx.");
+            }).on('error', function(e) {
+                console.error("ERROR AL CARGAR KML:", e);
+                alert("ALERTA: No se pudo cargar la capa KML.");
+            }).addTo(map);
 
-            // Cargar Google Sheet
+            // --- CARGAR GOOGLE SHEET ---
             Papa.parse(googleSheetURL, {
                 download: true, header: true,
                 complete: function (results) {
@@ -133,13 +120,40 @@
                 }
             });
 
-            // Herramientas
+            // --- HERRAMIENTAS ---
             new L.Control.Measure({ position: 'topright', localization: 'es' }).addTo(map);
             new L.Control.Draw({ edit: { featureGroup: new L.FeatureGroup().addTo(map) } }).addTo(map);
-            L.Routing.control({
+            
+            // --- HERRAMIENTA DE RUTAS CORREGIDA ---
+            const routingControl = L.Routing.control({
                 language: 'es',
-                geocoder: L.Control.Geocoder.nominatim({ geocodingQueryParams: { "accept-language": "es" } })
+                geocoder: L.Control.Geocoder.nominatim(),
+                routeWhileDragging: true,
+                // No añadir el control al mapa inmediatamente
+                show: false 
             }).addTo(map);
+
+            // Opcional: Crear un botón para mostrar/ocultar el control de rutas
+            L.Control.extend({
+                onAdd: function(map) {
+                    var button = L.DomUtil.create('button', 'leaflet-bar');
+                    button.innerHTML = '⛆'; // Icono de ruta
+                    button.title = 'Calcular Ruta';
+                    button.onclick = function(e) {
+                        const container = routingControl.getContainer();
+                        if (container.style.display === 'none') {
+                            container.style.display = 'block';
+                        } else {
+                            container.style.display = 'none';
+                        }
+                        L.DomEvent.stopPropagation(e);
+                    };
+                    return button;
+                }
+            }).addTo(new L.Control.Zoom({ position: 'topleft' })); // Añadirlo junto a los controles de zoom
+            
+            // Ocultar el panel de rutas al inicio
+            routingControl.getContainer().style.display = 'none';
         }
     </script>
 </body>
