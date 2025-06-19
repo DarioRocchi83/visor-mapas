@@ -1,6 +1,6 @@
 // --- 1. AUTENTICACIÓN SIMPLE ---
 // ¡CAMBIA 'tu_contraseña_secreta' por tu contraseña real!
-const passwordCorrecta = 'Holadario2025'; 
+const passwordCorrecta = '1234'; 
 let password = prompt('Por favor, introduce la contraseña para acceder al visor:');
 
 if (password !== passwordCorrecta) {
