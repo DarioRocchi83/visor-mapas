@@ -2,16 +2,55 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Visor de Mapas Definitivo</title>
+    <title>Visor de Mapas (Protegido)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-measure/dist/leaflet-measure.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Estilos para la pantalla de contraseña -->
+    <style>
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7); z-index: 10000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #login-box {
+            background-color: white; padding: 40px; border-radius: 8px;
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        #login-box input {
+            padding: 10px; font-size: 16px; margin-bottom: 15px; width: 250px;
+        }
+        #login-box button {
+            padding: 10px 20px; font-size: 16px; cursor: pointer;
+            background-color: #007bff; color: white; border: none; border-radius: 5px;
+        }
+        #login-error {
+            color: red; margin-top: 10px; display: none;
+        }
+        /* Ocultar el mapa inicialmente */
+        #map { visibility: hidden; }
+    </style>
 </head>
 <body>
+    <!-- Pantalla de Login -->
+    <div id="login-overlay">
+        <div id="login-box">
+            <h3>Acceso Protegido</h3>
+            <p>Por favor, ingrese la clave de vista:</p>
+            <input type="password" id="password-input" placeholder="Clave">
+            <br>
+            <button id="login-button">Entrar</button>
+            <p id="login-error">Clave incorrecta. Intente de nuevo.</p>
+        </div>
+    </div>
+    
+    <!-- Contenedor del Mapa -->
     <div id="map"></div>
 
+    <!-- Librerías JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
@@ -22,35 +61,62 @@
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
     <script>
-        window.onload = function () {
+        // --- SECCIÓN DE AUTENTICACIÓN ---
+        
+        // ¡¡¡CAMBIA ESTA CONTRASEÑA POR LA QUE TÚ QUIERAS!!!
+        const CLAVE_SECRETA = "Visor2023"; 
+
+        const loginOverlay = document.getElementById('login-overlay');
+        const mapContainer = document.getElementById('map');
+        const passwordInput = document.getElementById('password-input');
+        const loginButton = document.getElementById('login-button');
+        const loginError = document.getElementById('login-error');
+
+        loginButton.addEventListener('click', verificarClave);
+        passwordInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verificarClave();
+            }
+        });
+
+        function verificarClave() {
+            if (passwordInput.value === CLAVE_SECRETA) {
+                // Clave correcta: ocultar login y mostrar mapa
+                loginOverlay.style.display = 'none';
+                mapContainer.style.visibility = 'visible';
+                // Solo ahora que tenemos acceso, construimos el mapa
+                construirMapa(); 
+            } else {
+                // Clave incorrecta: mostrar error
+                loginError.style.display = 'block';
+                passwordInput.value = '';
+            }
+        }
+
+        // --- FUNCIÓN PRINCIPAL DEL MAPA ---
+        // Esta función ahora solo se llama si la clave es correcta
+        function construirMapa() {
             const googleSheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRHJ1KkaF4pZ-TzAUIUx_pQa97eKT6fp-T_5fIxevgrHUca-arFLQzYnxPY9jXM5Ow567TjX3NGYlyj/pub?gid=0&single=true&output=csv';
-            // CAMBIO CLAVE: Apuntamos al nuevo archivo .kml
             const rutaKML = 'data/ruta.kml';
 
             const map = L.map('map').setView([-34.5, -64], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            
             const capasParaAjuste = L.featureGroup().addTo(map);
 
-            // --- CARGAR KML ---
-            fetch(rutaKML)
-                .then(res => res.text())
-                .then(kmltext => {
-                    const parser = new DOMParser();
-                    const kml = parser.parseFromString(kmltext, 'text/xml');
-                    const track = new L.KML(kml);
-                    map.addLayer(track);
-                    
-                    const bounds = track.getBounds();
-                    if (bounds.isValid()) {
-                        capasParaAjuste.addLayer(track);
-                        map.fitBounds(capasParaAjuste.getBounds());
-                    }
-                    console.log("ÉXITO: Capa KML cargada.");
-                })
-                .catch(err => console.error("ERROR AL CARGAR KML:", err));
+            // Cargar KML
+            fetch(rutaKML).then(res => res.text()).then(kmltext => {
+                const parser = new DOMParser();
+                const kml = parser.parseFromString(kmltext, 'text/xml');
+                const track = new L.KML(kml);
+                map.addLayer(track);
+                const bounds = track.getBounds();
+                if (bounds.isValid()) {
+                    capasParaAjuste.addLayer(track);
+                    map.fitBounds(capasParaAjuste.getBounds());
+                }
+            });
 
-            // --- CARGAR GOOGLE SHEET ---
+            // Cargar Google Sheet
             Papa.parse(googleSheetURL, {
                 download: true, header: true,
                 complete: function (results) {
@@ -64,18 +130,17 @@
                         }
                     });
                     if (capasParaAjuste.getLayers().length > 0) map.fitBounds(capasParaAjuste.getBounds());
-                    console.log("ÉXITO: Puntos de Google Sheet cargados.");
                 }
             });
 
-            // --- HERRAMIENTAS ---
+            // Herramientas
             new L.Control.Measure({ position: 'topright', localization: 'es' }).addTo(map);
             new L.Control.Draw({ edit: { featureGroup: new L.FeatureGroup().addTo(map) } }).addTo(map);
             L.Routing.control({
                 language: 'es',
-                geocoder: L.Control.Geocoder.nominatim({ geocodingQueryParams: { "accept-language": "es" } }),
+                geocoder: L.Control.Geocoder.nominatim({ geocodingQueryParams: { "accept-language": "es" } })
             }).addTo(map);
-        };
+        }
     </script>
 </body>
 </html>
